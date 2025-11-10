@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Secure Login (with Salt & Pepper)</title>
+  </head>
+  <body>
+    <h2>🛡️ Simple Secure Login System</h2>
+
+    <h3>Sign Up</h3>
+    <input id="signupUser" type="text" placeholder="Username" /><br /><br />
+    <input id="signupPass" type="password" placeholder="Password" /><br /><br />
+    <button onclick="signUp()">Sign Up</button>
+    <p id="signupMsg"></p>
+
+    <hr />
+
+    <h3>Login</h3>
+    <input id="loginUser" type="text" placeholder="Username" /><br /><br />
+    <input id="loginPass" type="password" placeholder="Password" /><br /><br />
+    <button onclick="login()">Login</button>
+    <p id="loginMsg"></p>
+
+    <script>
+      let users = {}; // store { username: {salt, hash} }
+      const PEPPER = "satvik"; // secret value known only to the server
+
+      // Hashing function
+      async function hashPassword(input) {
+        const data = new TextEncoder().encode(input);
+        const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+      }
+
+      // Generate random salt
+      function generateSalt() {
+        // Generate a short random string
+        return Math.random().toString(36).substring(2, 10); // 8 characters
+      }
+
+      // Sign Up
+      async function signUp() {
+        const user = document.getElementById("signupUser").value.trim();
+        const pass = document.getElementById("signupPass").value.trim();
+        const msg = document.getElementById("signupMsg");
+
+        if (!user || !pass) {
+          msg.textContent = "⚠️ Enter username and password.";
+          msg.style.color = "red";
+          return;
+        }
+
+        if (users[user]) {
+          msg.textContent = "⚠️ User already exists.";
+          msg.style.color = "red";
+          return;
+        }
+
+        const salt = generateSalt();
+        const saltedPass = pass + salt + PEPPER;
+        const hash = await hashPassword(saltedPass);
+
+        users[user] = { salt: salt, hash: hash };
+        msg.textContent = "✅ Signup successful! You can login now.";
+        msg.style.color = "green";
+
+        console.log("Stored users:", users);
+      }
+
+      // Login
+      async function login() {
+        const user = document.getElementById("loginUser").value.trim();
+        const pass = document.getElementById("loginPass").value.trim();
+        const msg = document.getElementById("loginMsg");
+
+        if (!users[user]) {
+          msg.textContent = "❌ User not found.";
+          msg.style.color = "red";
+          return;
+        }
+
+        const storedSalt = users[user].salt;
+        const storedHash = users[user].hash;
+
+        const saltedPass = pass + storedSalt + PEPPER;
+        const enteredHash = await hashPassword(saltedPass);
+
+        if (enteredHash === storedHash) {
+          msg.textContent = "✅ Login successful!";
+          msg.style.color = "green";
+        } else {
+          msg.textContent = "❌ Wrong password!";
+          msg.style.color = "red";
+        }
+      }
+    </script>
+  </body>
+</html>
