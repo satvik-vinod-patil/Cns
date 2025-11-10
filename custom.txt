@@ -1,0 +1,54 @@
+#include <iostream>
+#include <string>
+
+using namespace std;
+
+// Encrypt function
+string encrypt(const string &text, const string &password) {
+    string encrypted = "";
+    int pwdLen = password.length();
+
+    for (int i = 0; i < text.length(); i++) {
+        char plainChar = text[i];
+        char pwdChar = password[i % pwdLen];
+        int encryptedVal = (plainChar + pwdChar) ^ pwdLen;
+        encrypted += encryptedVal;  
+    }
+    return encrypted;
+}
+
+// Decrypt function
+string decrypt(const string &text, const string &password) {
+    string decrypted = "";
+    int pwdLen = password.length();
+
+    for (int i = 0; i < text.length(); i++) {
+        char encChar = text[i];
+        char pwdChar = password[i % pwdLen];
+        int decryptedVal = (encChar ^ pwdLen) - pwdChar;
+        decrypted += decryptedVal;  // simpler
+    }
+    return decrypted;
+}
+
+
+int main() {
+    string message, password;
+
+    // Input
+    cout << "Enter message: ";
+    getline(cin, message);
+
+    cout << "Enter password (key): ";
+    getline(cin, password);
+
+    // Encryption
+    string encrypted = encrypt(message, password);
+    cout << "Encrypted Text: " << encrypted << endl;
+
+    // Decryption
+    string decrypted = decrypt(encrypted, password);
+    cout << "Decrypted Text: " << decrypted << endl;
+
+    return 0;
+}
