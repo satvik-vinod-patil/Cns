@@ -1,0 +1,33 @@
+import java.io.*;
+import java.util.*;
+
+public class Main{
+    public static void main(String args[]){
+        Scanner sc = new Scanner(System.in);
+        System.out.println("input wali file-");
+        String filename = sc.nextLine();
+
+        System.out.println("output wali file-");
+        String filename2 = sc.nextLine();
+
+        System.out.println("key-");
+        char key = sc.nextLine().charAt(0);
+
+        try{
+            FileInputStream input = new FileInputStream(filename);
+            FileOutputStream output = new FileOutputStream(filename2);
+
+            int ch;
+            while((ch = input.read()) != -1){
+                ch = ch ^ key ;
+                output.write(ch);
+            }
+        }
+        catch(IOException e){
+            System.out.println("Sorry baba");
+        }
+
+
+        sc.close();
+    }
+}
