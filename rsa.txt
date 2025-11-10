@@ -1,0 +1,121 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <chrono>
+#include <cmath>
+using namespace std;
+using namespace chrono;
+
+// ---------- GCD Function ----------
+int gcd(int a, int b) {
+    if (b == 0) return a;
+    return gcd(b, a % b);
+}
+
+// ---------- Modular Inverse ----------
+int modinverse(int e, int phi) {
+    for (int i = 1; i < phi; i++) {
+        if ((e * i) % phi == 1)
+            return i;
+    }
+    return 0;
+}
+
+// ---------- Modular Exponentiation ----------
+int modexp(int base, int exp, int mod) {
+    int result = 1;
+    base = base % mod;
+    while (exp > 0) {
+        if (exp % 2 == 1)
+            result = (result * base) % mod;
+        exp /= 2;
+        base = (base * base) % mod;
+    }
+    return result;
+}
+
+// ---------- Automatically choose e ----------
+int chooseE(int phi) {
+    int smallPrimes[] = {3, 5, 17, 257, 65537};
+    for (int i = 0; i < 5; i++) {
+        int e = smallPrimes[i];
+        if (e < phi && gcd(e, phi) == 1)
+            return e;
+    }
+    // fallback: find any e starting from 2
+    for (int e = 2; e < phi; e++) {
+        if (gcd(e, phi) == 1)
+            return e;
+    }
+    return 0; // should never reach here
+}
+
+int main() {
+    int p, q;
+    cout << "Enter prime number p: ";
+    cin >> p;
+    cout << "Enter prime number q: ";
+    cin >> q;
+
+    auto startKeyGen = high_resolution_clock::now();  // start timing key generation
+
+    int n = p * q;
+    int phi = (p - 1) * (q - 1);
+
+    // Automatically choose e
+    int e = chooseE(phi);
+
+    // Compute d
+    int d = modinverse(e, phi);
+
+    auto endKeyGen = high_resolution_clock::now();  // end timing key generation
+    auto keyGenTime = duration_cast<microseconds>(endKeyGen - startKeyGen).count();
+
+    cout << "\nKey generation completed!" << endl;
+    cout << "Public Key (e, n) = (" << e << ", " << n << ")" << endl;
+    cout << "Private Key (d, n) = (" << d << ", " << n << ")" << endl;
+    cout << "Time for key generation: " << keyGenTime << " microseconds\n" << endl;
+
+    cin.ignore();
+    string message;
+    cout << "Enter plaintext message (uppercase letters only): ";
+    getline(cin, message);
+
+    vector<int> cipher(message.size());
+
+    // ---------- Encryption ----------
+    auto startEncrypt = high_resolution_clock::now();
+    for (int i = 0; i < message.size(); i++) {
+        cipher[i] = modexp(message[i] - 'A', e, n);
+    }
+    auto endEncrypt = high_resolution_clock::now();
+    auto encryptTime = duration_cast<microseconds>(endEncrypt - startEncrypt).count();
+
+    cout << "\nCiphertext: ";
+    for (int i = 0; i < message.size(); i++) {
+        cout << cipher[i] << " ";
+    }
+    cout << "\nEncryption time: " << encryptTime << " microseconds\n" << endl;
+
+    // ---------- Decryption ----------
+    string decrypted = "";
+    auto startDecrypt = high_resolution_clock::now();
+    for (int i = 0; i < message.size(); i++) {
+        decrypted += char(modexp(cipher[i], d, n) + 'A');
+    }
+    auto endDecrypt = high_resolution_clock::now();
+    auto decryptTime = duration_cast<microseconds>(endDecrypt - startDecrypt).count();
+
+    cout << "Decrypted message: " << decrypted << endl;
+    cout << "Decryption time: " << decryptTime << " microseconds" << endl;
+
+    // ---------- Summary ----------
+    cout << "\n--- Experiment Summary ---" << endl;
+    cout << "Key Size (n): " << n << " bits (approx.)" << endl;
+    cout << "Message Length: " << message.size() << " characters" << endl;
+    cout << "Key Generation Time: " << keyGenTime << " µs" << endl;
+    cout << "Encryption Time: " << encryptTime << " µs" << endl;
+    cout << "Decryption Time: " << decryptTime << " µs" << endl;
+
+    return 0;
+}
