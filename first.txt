@@ -1,0 +1,196 @@
+#include <iostream>
+#include <string>
+#include <map>
+#include <vector>
+#include <cctype>
+
+using namespace std;
+
+int main() {
+    cout << "===== Classical Encryption Techniques =====\n";
+    cout << "1. Caesar Cipher\n";
+    cout << "2. Monoalphabetic Cipher\n";
+    cout << "3. Polyalphabetic (Vigenère) Cipher\n";
+    cout << "4. Rail Fence Cipher\n";
+    cout << "5. Vernam Cipher\n";
+    cout << "Enter your choice (1-5): ";
+    int choice;
+    cin >> choice;
+    cin.ignore(); // consume newline
+
+    cout << "Do you want to Encrypt (E) or Decrypt (D)? ";
+    char action;
+    cin >> action;
+    action = toupper(action);
+    cin.ignore(); // consume newline
+
+    switch(choice) {
+        // -------------------- 1. Caesar Cipher --------------------
+        case 1: {
+            cout << "Enter text: ";
+            string text;
+            getline(cin, text);
+            for(auto &c: text) c = toupper(c);
+
+            cout << "Enter key (integer): ";
+            int key;
+            cin >> key;
+
+            string result;
+            for(char c : text) {
+                if(isalpha(c)) {
+                    if(action == 'E')
+                        result += (c - 'A' + key) % 26 + 'A';
+                    else
+                        result += (c - 'A' - key + 26) % 26 + 'A';
+                } else result += c;
+            }
+            cout << "Result: " << result << endl;
+            break;
+        }
+
+        // -------------------- 2. Monoalphabetic Cipher --------------------
+        case 2: {
+            cout << "Enter text: ";
+            string text;
+            getline(cin, text);
+            for(auto &c: text) c = toupper(c);
+
+            cout << "Enter 26-letter key: ";
+            string key26;
+            getline(cin, key26);
+            for(auto &c: key26) c = toupper(c);
+
+            if(key26.length() != 26) {
+                cout << "Error: Key must have exactly 26 letters!\n";
+                break;
+            }
+
+            map<char, char> mapping;
+            char ch = 'A';
+            for(int i = 0; i < 26; i++) mapping[ch++] = key26[i];
+
+            string result;
+            if(action == 'E') {
+                for(char c : text) result += mapping.count(c) ? mapping[c] : c;
+            } else {
+                map<char, char> reverseMapping;
+                for(auto &p : mapping) reverseMapping[p.second] = p.first;
+                for(char c : text) result += reverseMapping.count(c) ? reverseMapping[c] : c;
+            }
+            cout << "Result: " << result << endl;
+            break;
+        }
+
+        // -------------------- 3. Vigenère Cipher --------------------
+        case 3: {
+            cout << "Enter text: ";
+            string text;
+            getline(cin, text);
+            for(auto &c: text) c = toupper(c);
+
+            cout << "Enter key: ";
+            string key;
+            getline(cin, key);
+            for(auto &c: key) c = toupper(c);
+
+            string result;
+            int keyIndex = 0;
+            for(char c : text) {
+                if(isalpha(c)) {
+                    int shift = key[keyIndex] - 'A';
+                    if(action == 'E')
+                        result += (c - 'A' + shift) % 26 + 'A';
+                    else
+                        result += (c - 'A' - shift + 26) % 26 + 'A';
+                    keyIndex = (keyIndex + 1) % key.length();
+                } else result += c;
+            }
+            cout << "Result: " << result << endl;
+            break;
+        }
+
+        // -------------------- 4. Rail Fence Cipher --------------------
+        case 4: {
+            cout << "Enter text: ";
+            string text;
+            getline(cin, text);
+            text.erase(remove_if(text.begin(), text.end(), ::isspace), text.end());
+
+            cout << "Enter number of rails: ";
+            int rails;
+            cin >> rails;
+
+            if(action == 'E') {
+                vector<string> fence(rails);
+                int rail = 0, dir = 1;
+                for(char c : text) {
+                    fence[rail] += c;
+                    rail += dir;
+                    if(rail == 0 || rail == rails - 1) dir = -dir;
+                }
+                string result;
+                for(string s : fence) result += s;
+                cout << "Result: " << result << endl;
+            } else {
+                int n = text.length();
+                vector<int> railLengths(rails, 0);
+                int rail = 0, dir = 1;
+                for(int i = 0; i < n; i++) {
+                    railLengths[rail]++;
+                    rail += dir;
+                    if(rail == 0 || rail == rails - 1) dir = -dir;
+                }
+
+                vector<int> railStarts(rails);
+                int currentStart = 0;
+                for(int i = 0; i < rails; i++) {
+                    railStarts[i] = currentStart;
+                    currentStart += railLengths[i];
+                }
+
+                vector<char> decrypted(n);
+                rail = 0; dir = 1;
+                for(int i = 0; i < n; i++) {
+                    decrypted[i] = text[railStarts[rail]++];
+                    rail += dir;
+                    if(rail == 0 || rail == rails - 1) dir = -dir;
+                }
+                cout << "Result: " << string(decrypted.begin(), decrypted.end()) << endl;
+            }
+            break;
+        }
+
+        // -------------------- 5. Vernam Cipher --------------------
+        case 5: {
+            cout << "Enter text: ";
+            string text;
+            getline(cin, text);
+            for(auto &c: text) c = toupper(c);
+
+            cout << "Enter key (same length as text): ";
+            string key;
+            getline(cin, key);
+            for(auto &c: key) c = toupper(c);
+
+            if(text.length() != key.length()) {
+                cout << "Error: Key length must match text!\n";
+                break;
+            }
+
+            string result;
+            for(size_t i = 0; i < text.length(); i++) {
+                if(isalpha(text[i]))
+                    result += ((text[i] - 'A') ^ (key[i] - 'A')) + 'A';
+                else result += text[i];
+            }
+            cout << "Result: " << result << endl;
+            break;
+        }
+
+        default:
+            cout << "Invalid choice!" << endl;
+    }
+
+    return 0;
+}
