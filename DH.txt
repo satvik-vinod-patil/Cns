@@ -1,0 +1,105 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+// modular exponentiation
+int modpow(int base, int exp, int mod) {
+    long long result = 1;
+    long long b = base % mod;
+    while (exp > 0) {
+        if (exp & 1) result = (result * b) % mod;
+        b = (b * b) % mod;
+        exp >>= 1;
+    }
+    return (int)result;
+}
+
+// simple XOR encryption/decryption
+string xor_encrypt_decrypt(const string &msg, int key) {
+    string out = msg;
+    for (size_t i = 0; i < msg.size(); i++) {
+        out[i] = msg[i] ^ (key & 0xFF);
+    }
+    return out;
+}
+
+int main() {
+    cout << "Simple Diffie-Hellman + MITM demo\n";
+
+    int mode;
+    cout << "Choose mode (1 = Normal, 2 = MITM): ";
+    cin >> mode;
+
+    int P, G;
+    cout << "Enter prime P (>2): ";
+    cin >> P;
+    cout << "Enter generator G (1<G<P): ";
+    cin >> G;
+
+    int alicePriv, bobPriv;
+    cout << "Enter Alice's private key: ";
+    cin >> alicePriv;
+    cout << "Enter Bob's private key: ";
+    cin >> bobPriv;
+    cin.ignore(); // remove leftover newline
+
+    string aliceMessage;
+    cout << "Enter message Alice sends: ";
+    getline(cin, aliceMessage);
+
+    int A = modpow(G, alicePriv, P);
+    int B = modpow(G, bobPriv, P);
+
+    cout << "\nAlice computes public A = " << A << "\n";
+    cout << "Bob computes public B = " << B << "\n\n";
+
+    if (mode == 1) {
+        cout << "Normal Diffie-Hellman\n";
+        int aliceShared = modpow(B, alicePriv, P);
+        int bobShared = modpow(A, bobPriv, P);
+        cout << "Shared secret: Alice = " << aliceShared << ", Bob = " << bobShared << "\n";
+        cout << "Secrets equal? " << (aliceShared == bobShared ? "Yes" : "No") << "\n";
+
+        int key = aliceShared % 256;
+        string ciphertext = xor_encrypt_decrypt(aliceMessage, key);
+        cout << "Encrypted message: " << ciphertext << "\n";
+
+        string decrypted = xor_encrypt_decrypt(ciphertext, key);
+        cout << "Bob decrypts: " << decrypted << "\n";
+    } else {
+        cout << "MITM attack (Mallory in middle)\n";
+
+        int malloryPrivA, malloryPrivB;
+        cout << "Enter Mallory's private key with Alice: ";
+        cin >> malloryPrivA;
+        cout << "Enter Mallory's private key with Bob: ";
+        cin >> malloryPrivB;
+
+        int MalloryA = modpow(G, malloryPrivA, P);
+        int MalloryB = modpow(G, malloryPrivB, P);
+
+        int aliceComputed = modpow(MalloryA, alicePriv, P);
+        int bobComputed = modpow(MalloryB, bobPriv, P);
+        int malloryWithAlice = modpow(A, malloryPrivA, P);
+        int malloryWithBob = modpow(B, malloryPrivB, P);
+
+        cout << "Alice computes (using Mallory's A) = " << aliceComputed << "\n";
+        cout << "Bob computes (using Mallory's B) = " << bobComputed << "\n";
+        cout << "Mallory<->Alice secret = " << malloryWithAlice << "\n";
+        cout << "Mallory<->Bob secret = " << malloryWithBob << "\n\n";
+
+        int keyAlice = aliceComputed % 256;
+        string ciphertext = xor_encrypt_decrypt(aliceMessage, keyAlice);
+        cout << "Alice sends ciphertext: " << ciphertext << "\n";
+
+        string malloryReads = xor_encrypt_decrypt(ciphertext, malloryWithAlice % 256);
+        cout << "Mallory intercepts and reads: " << malloryReads << "\n";
+
+        string forward = xor_encrypt_decrypt(malloryReads, malloryWithBob % 256);
+        cout << "Mallory forwards encrypted message to Bob: " << forward << "\n";
+
+        string bobReads = xor_encrypt_decrypt(forward, bobComputed % 256);
+        cout << "Bob decrypts and reads: " << bobReads << "\n";
+    }
+
+    return 0;
+}
